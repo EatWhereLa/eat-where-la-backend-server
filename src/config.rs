@@ -7,4 +7,7 @@ pub struct Config {
 
     #[clap(env, long)]
     pub postgres_url: String,
+
+    #[clap(env, long)]
+    pub origin_urls: String,
 }

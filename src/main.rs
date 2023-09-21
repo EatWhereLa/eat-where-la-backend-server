@@ -9,6 +9,7 @@ use crate::config::Config;
 
 pub mod controller;
 pub mod helpers;
+pub mod repositories;
 pub mod config;
 
 #[tokio::main]

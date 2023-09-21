@@ -28,5 +28,10 @@ async fn main() -> anyhow::Result<()> {
         .build(postgres_manager)
         .await?;
 
+    controller::serve(
+        pool_build_result,
+        &config,
+    ).await?;
+
     Ok(())
 }

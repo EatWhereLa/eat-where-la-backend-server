@@ -1,7 +1,6 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 use anyhow::Context;
-use axum::handler::HandlerWithoutStateExt;
 use axum::http::HeaderValue;
 use axum::{Extension, Router};
 use bb8_postgres::bb8::Pool;
@@ -55,9 +54,9 @@ pub async fn serve(
                 )
                 .layer(Extension(app_state))
         )
-        .fallback(page_not_found_handler.into_service());
+        .fallback(page_not_found_handler);
 
-    let port = SocketAddr::from([127, 0, 0, 0], 5000);
+    let port = SocketAddr::from(([0, 0, 0, 0], 3000));
     info!("API server listening on port: {}", port);
     axum::Server::bind(&port)
         .serve(application.into_make_service())

@@ -1,4 +1,5 @@
 use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::Router;
 
@@ -7,7 +8,10 @@ pub fn router() -> Router {
 }
 
 /// Misc endpoint for individual use case
-async fn get_health_check() -> Result<StatusCode, StatusCode>
+async fn get_health_check() -> impl IntoResponse
 {
-    Ok(StatusCode::OK)
+    (
+        StatusCode::OK,
+        "Server is healthy"
+    ).into_response()
 }

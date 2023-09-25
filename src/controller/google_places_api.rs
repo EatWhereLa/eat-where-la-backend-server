@@ -60,7 +60,7 @@ pub async fn proxy_google_places_api(
                         let photo = restaurant_val["photos"][0].as_object().unwrap();
                         let restaurant = Restaurant {
                             place_id: restaurant_val["place_id"].to_string().replace('"', ""),
-                            name: restaurant_val["name"].to_string().replace('"', ""),
+                            name: restaurant_val["name"].to_string().replace('"', "").replace("'", ""),
                             photos: Photo {
                                 height: photo.get("height").unwrap().to_string().replace('"', "").parse().unwrap(),
                                 photo_reference: photo.get("photo_reference").unwrap().to_string().replace('"', ""),
@@ -101,5 +101,5 @@ pub async fn proxy_google_places_api(
     return (
         StatusCode::OK,
         json!(list_of_restaurants).to_string(),
-    );
+    ).into_response();
 }

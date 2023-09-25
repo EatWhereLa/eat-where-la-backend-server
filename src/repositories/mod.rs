@@ -1,1 +1,1 @@
-pub mod restaurant_repo;
+pub mod postgres_repo;

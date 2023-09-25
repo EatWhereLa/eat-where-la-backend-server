@@ -7,7 +7,7 @@ use bb8_postgres::bb8::Pool;
 use bb8_postgres::PostgresConnectionManager;
 use bb8_postgres::tokio_postgres::NoTls;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
-use reqwest::Method;
+use reqwest::{Client, Method};
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tracing::info;
@@ -21,6 +21,7 @@ pub mod google_places_api;
 pub struct AppState {
     pub config: Arc<Config>,
     pub postgres_connection: Pool<PostgresConnectionManager<NoTls>>,
+    pub http_client: Client,
 }
 
 pub async fn serve(
@@ -32,13 +33,15 @@ pub async fn serve(
         .split(',')
         .map(|s| s.parse().unwrap())
         .collect::<Vec<HeaderValue>>();
+    let reqwest_client = Client::new();
 
     let app_state = AppState {
         config: Arc::new(config.clone()),
         postgres_connection,
+        http_client: reqwest_client,
     };
 
-    let application = router_endpoints()
+    let application = router_endpoints(app_state.clone())
         .layer(
             ServiceBuilder::new()
                 .layer(
@@ -65,6 +68,9 @@ pub async fn serve(
         .context("Error spinning up the API server")
 }
 
-pub fn router_endpoints() -> Router {
+pub fn router_endpoints(
+    app_state: AppState,
+) -> Router {
     health_check::router()
+        .nest("/restaurant", google_places_api::router(app_state.clone()))
 }

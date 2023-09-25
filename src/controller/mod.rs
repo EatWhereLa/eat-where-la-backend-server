@@ -15,11 +15,12 @@ use crate::config::Config;
 use crate::helpers::handler_404::page_not_found_handler;
 
 pub mod health_check;
+pub mod google_places_api;
 
 #[derive(Clone)]
 pub struct AppState {
-    config: Arc<Config>,
-    postgres_connection: Pool<PostgresConnectionManager<NoTls>>,
+    pub config: Arc<Config>,
+    pub postgres_connection: Pool<PostgresConnectionManager<NoTls>>,
 }
 
 pub async fn serve(

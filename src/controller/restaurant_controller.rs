@@ -16,8 +16,8 @@ pub fn router(app_state: AppState) -> Router {
     ));
 
     Router::new()
-
         .route("/", get(retrieve_restaurant))
+        .route("/search", get(search_restaurants_by_name))
         .route_layer(Extension(postgres_repo))
 }
 
@@ -54,6 +54,37 @@ pub async fn retrieve_restaurant(
             (
                 StatusCode::BAD_REQUEST,
                 "Failed to retrieve restaurant, please try again!"
+            ).into_response()
+        }
+    };
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct SearchRestaurantParam {
+    pub restaurant_name: String,
+}
+
+pub async fn search_restaurants_by_name(
+    Extension(postgres_repo): Extension<Arc<PostgresConnectionRepo>>,
+    Query(query): Query<SearchRestaurantParam>,
+) -> impl IntoResponse {
+    let restaurants_res = postgres_repo
+        .search_for_restaurants(
+            &query.restaurant_name
+        ).await;
+
+    return match restaurants_res {
+        Ok(restaurants) => {
+            (
+                StatusCode::OK,
+                json!(&restaurants).to_string()
+            ).into_response()
+        }
+        Err(e) => {
+            warn!("Something went wrong searching for restaurants due to: {}", e);
+            (
+                StatusCode::BAD_REQUEST,
+                "{}".to_string()
             ).into_response()
         }
     };

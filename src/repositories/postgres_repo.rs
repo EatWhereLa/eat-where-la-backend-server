@@ -1,6 +1,4 @@
 use anyhow::anyhow;
-// places api -> fuzzy search for restaurants based on the restaurant name ->
-// search on geolocation as well(lat, long)
 use bb8_postgres::bb8::{Pool, PooledConnection};
 use bb8_postgres::PostgresConnectionManager;
 use bb8_postgres::tokio_postgres::{NoTls, Row};
@@ -107,6 +105,37 @@ impl PostgresConnectionRepo {
             }
         }
         Ok(None)
+    }
+
+    pub async fn search_for_restaurants(
+        &self,
+        restaurant_name: &String,
+    ) -> anyhow::Result<Vec<Restaurant>> {
+        let conn = self.get_postgres_connection().await?;
+        let stmt = format!(
+            "SELECT * FROM places WHERE name ILIKE '%{}%'",
+            restaurant_name
+        );
+
+        let res = conn
+            .query(&stmt, &[])
+            .await;
+
+        let mut restaurants = Vec::new();
+        match res {
+            Ok(rows) => {
+                for row in rows {
+                    let restaurant = parse_row_into_restaurant(row);
+
+                    restaurants.push(restaurant);
+                }
+            }
+            Err(e) => {
+                warn!("Ran into an error retrieving restaurants due to: {}", e);
+            }
+        }
+
+        Ok(restaurants)
     }
 
     pub async fn bookmark_place(

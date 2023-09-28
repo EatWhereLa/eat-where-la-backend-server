@@ -3,9 +3,10 @@ use anyhow::anyhow;
 // search on geolocation as well(lat, long)
 use bb8_postgres::bb8::{Pool, PooledConnection};
 use bb8_postgres::PostgresConnectionManager;
-use bb8_postgres::tokio_postgres::NoTls;
+use bb8_postgres::tokio_postgres::{NoTls, Row};
+use time::OffsetDateTime;
 use tracing::warn;
-use crate::models::restaurant::Restaurant;
+use crate::models::restaurant::{Location, Photo, Restaurant};
 
 pub const RETRY_LIMIT: usize = 5;
 
@@ -76,5 +77,139 @@ impl PostgresConnectionRepo {
             }
         }
         Ok(())
+    }
+
+    pub async fn retrieve_restaurant(
+        &self,
+        place_id: &String,
+    ) -> anyhow::Result<Option<Restaurant>> {
+        let conn = self.get_postgres_connection().await?;
+        let stmt = format!(
+            "SELECT * FROM places where place_id = '{}' limit 1;",
+            place_id
+        );
+
+        let res = conn
+            .query(&stmt, &[])
+            .await;
+
+        match res {
+            Ok(rows) => {
+                if rows.len() > 0 {
+                    for row in rows {
+                        let restaurant = parse_row_into_restaurant(row);
+                        return Ok(Some(restaurant));
+                    }
+                }
+            }
+            Err(e) => {
+                warn!("Ran into an issue retrieving the restaurant with id: {}, due to: {}", place_id, e);
+            }
+        }
+        Ok(None)
+    }
+
+    pub async fn bookmark_place(
+        &self,
+        user_id: &String,
+        place_id: &String,
+    ) -> anyhow::Result<()> {
+        let conn = self.get_postgres_connection().await?;
+        let mut stmt = String::from("INSERT INTO user_favourite_places (user_id, place_id, timestamp) VALUES ");
+        let params = format!(
+            "('{}', '{}', '{}')",
+            user_id,
+            place_id,
+            OffsetDateTime::now_utc()
+        );
+        stmt.push_str(&params);
+        stmt.push_str(" ON CONFLICT DO NOTHING;");
+
+        let res = conn
+            .execute(&stmt, &[])
+            .await;
+        match res {
+            Ok(_) => {}
+            Err(e) => {
+                warn!("Failed to bookmark restaurant for user: {}, due to: {}", user_id, e);
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn remove_bookmark(
+        &self,
+        user_id: &String,
+        place_id: &String,
+    ) -> anyhow::Result<()> {
+        let conn = self.get_postgres_connection().await?;
+        let stmt = format!(
+            "DELETE FROM user_favourite_places where user_id = '{}' and place_id = '{}';",
+            user_id,
+            place_id
+        );
+
+        let res = conn
+            .execute(&stmt, &[])
+            .await;
+        match res {
+            Ok(_) => {}
+            Err(e) => {
+                warn!("Failed to remove bookmarked restaurant for user: {}, due to: {}", user_id, e);
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn retrieve_bookmarked_places(
+        &self,
+        user_id: &String,
+    ) -> anyhow::Result<Vec<Restaurant>> {
+        let conn = self.get_postgres_connection().await?;
+        let stmt = format!(
+            "SELECT * from places where place_id in (SELECT place_id FROM user_favourite_places where user_id = '{}');"
+            user_id,
+        );
+
+        let mut favourite_restaurants: Vec<Restaurant> = Vec::new();
+        let res = conn
+            .query(&stmt, &[])
+            .await;
+        match res {
+            Ok(rows) => {
+                for row in rows {
+                    let restaurant = parse_row_into_restaurant(row);
+
+                    favourite_restaurants.push(restaurant);
+                }
+            }
+            Err(e) => {
+                warn!("Failed to remove bookmarked restaurant for user: {}, due to: {}", user_id, e);
+            }
+        }
+
+        Ok(favourite_restaurants)
+    }
+}
+
+fn parse_row_into_restaurant(
+    row: Row
+) -> Restaurant {
+    Restaurant {
+        place_id: row.get("place_id"),
+        name: row.get("name"),
+        photos: Photo {
+            height: row.get("photo_height"),
+            photo_reference: row.get("photo_reference"),
+            width: row.get("photo_width"),
+        },
+        rating: row.get("rating"),
+        vicinity: row.get("vicinity"),
+        geometry: Location {
+            lat: row.get("lat"),
+            lng: row.get("lng"),
+        },
     }
 }

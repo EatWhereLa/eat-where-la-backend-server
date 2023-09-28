@@ -14,8 +14,9 @@ use tracing::info;
 use crate::config::Config;
 use crate::helpers::handler_404::page_not_found_handler;
 
-pub mod health_check;
 pub mod google_places_api;
+pub mod health_check;
+pub mod restaurant_controller;
 
 #[derive(Clone)]
 pub struct AppState {

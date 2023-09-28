@@ -169,7 +169,7 @@ impl PostgresConnectionRepo {
     ) -> anyhow::Result<Vec<Restaurant>> {
         let conn = self.get_postgres_connection().await?;
         let stmt = format!(
-            "SELECT * from places where place_id in (SELECT place_id FROM user_favourite_places where user_id = '{}');"
+            "SELECT * from places where place_id in (SELECT place_id FROM user_favourite_places where user_id = '{}');",
             user_id,
         );
 
@@ -201,15 +201,15 @@ fn parse_row_into_restaurant(
         place_id: row.get("place_id"),
         name: row.get("name"),
         photos: Photo {
-            height: row.get("photo_height"),
+            height: row.get::<&str, i32>("photo_height") as i64,
             photo_reference: row.get("photo_reference"),
-            width: row.get("photo_width"),
+            width: row.get::<&str, i32>("photo_width") as i64,
         },
-        rating: row.get("rating"),
+        rating: row.get::<&str, f64>("rating"),
         vicinity: row.get("vicinity"),
         geometry: Location {
-            lat: row.get("lat"),
-            lng: row.get("lng"),
+            lat: row.get::<&str, f64>("lat"),
+            lng: row.get::<&str, f64>("lng"),
         },
     }
 }

@@ -14,6 +14,7 @@ use tracing::info;
 use crate::config::Config;
 use crate::helpers::handler_404::page_not_found_handler;
 
+pub mod bookmarks_controller;
 pub mod google_places_api;
 pub mod health_check;
 pub mod restaurant_controller;
@@ -73,5 +74,7 @@ pub fn router_endpoints(
     app_state: AppState,
 ) -> Router {
     health_check::router()
-        .nest("/restaurant", google_places_api::router(app_state.clone()))
+        .nest("/google", google_places_api::router(app_state.clone()))
+        .nest("/restaurant", restaurant_controller::router(app_state.clone()))
+        .nest("/bookmark", bookmarks_controller::router(app_state.clone()))
 }

@@ -20,3 +20,20 @@ create table user_favourite_places
     primary key (user_id, place_id),
     constraint user_favourite_places_fk foreign key (place_id) references places (place_id)
 );
+
+create table user_reviews
+(
+    user_id  varchar,
+    place_id varchar,
+    rating   double precision,
+
+    primary key (user_id, place_id),
+    constraint user_reviews_fk foreign key (place_id) references places (place_id)
+);
+
+create table user_reservations
+(
+    user_id               varchar,
+    place_id              varchar,
+    reservation_timestamp timestamp
+);

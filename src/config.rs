@@ -9,9 +9,6 @@ pub struct Config {
     pub postgres_url: String,
 
     #[clap(env, long)]
-    pub origin_urls: String,
-
-    #[clap(env, long)]
     pub google_maps_api_url: String,
 
     #[clap(env, long)]

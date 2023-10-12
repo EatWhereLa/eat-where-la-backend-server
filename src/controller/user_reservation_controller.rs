@@ -6,6 +6,7 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post, delete};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use time::macros::format_description;
 use time::OffsetDateTime;
 use tracing::warn;
 use crate::controller::AppState;
@@ -27,18 +28,20 @@ pub fn router(app_state: AppState) -> Router {
 pub struct ReserveRestaurant {
     pub user_id: String,
     pub place_id: String,
-    pub reservation_time: OffsetDateTime,
+    pub reservation_time: String,
 }
 
 pub async fn add_reservation(
-    Extension(postgres_repo): Extension<PostgresConnectionRepo>,
+    Extension(postgres_repo): Extension<Arc<PostgresConnectionRepo>>,
     Json(body): Json<ReserveRestaurant>,
 ) -> impl IntoResponse {
+    let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
+    let time = OffsetDateTime::parse(&body.reservation_time, format).unwrap();
     let add_reservation_res = postgres_repo
         .add_reservations(
             &body.user_id,
             &body.place_id,
-            body.reservation_time,
+            time,
         ).await;
 
     return match add_reservation_res {
@@ -59,7 +62,7 @@ pub struct DeleteReservationQuery {
 }
 
 pub async fn delete_reservation(
-    Extension(postgres_repo): Extension<PostgresConnectionRepo>,
+    Extension(postgres_repo): Extension<Arc<PostgresConnectionRepo>>,
     Query(query): Query<DeleteReservationQuery>,
 ) -> impl IntoResponse {
     let remove_reservation_res = postgres_repo
@@ -85,7 +88,7 @@ pub struct GetReservationQuery {
 }
 
 pub async fn get_all_reservations(
-    Extension(postgres_repo): Extension<PostgresConnectionRepo>,
+    Extension(postgres_repo): Extension<Arc<PostgresConnectionRepo>>,
     Query(query): Query<GetReservationQuery>,
 ) -> impl IntoResponse {
     let user_reservations_res = postgres_repo

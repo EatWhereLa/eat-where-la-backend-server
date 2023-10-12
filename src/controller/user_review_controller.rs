@@ -60,7 +60,7 @@ pub struct RemoveReviewQuery {
 }
 
 pub async fn remove_review(
-    Extension(postgres_repo): Extension<PostgresConnectionRepo>,
+    Extension(postgres_repo): Extension<Arc<PostgresConnectionRepo>>,
     Query(query): Query<RemoveReviewQuery>,
 ) -> impl IntoResponse {
     let remove_review_res = postgres_repo
@@ -75,13 +75,13 @@ pub async fn remove_review(
         }
         Err(e) => {
             warn!("Something went wrong removing review due to: {}", e);
-            (StatusCode::BAD_REQUEST, "Failed to remove review, please try again.").into_response();
+            (StatusCode::BAD_REQUEST, "Failed to remove review, please try again.").into_response()
         }
     };
 }
 
 pub async fn update_review(
-    Extension(postgres_repo): Extension<PostgresConnectionRepo>,
+    Extension(postgres_repo): Extension<Arc<PostgresConnectionRepo>>,
     Json(body): Json<Review>,
 ) -> impl IntoResponse {
     let update_review_res = postgres_repo
@@ -108,7 +108,7 @@ pub struct RetrieveRestaurantReviews {
 }
 
 pub async fn retrieve_restaurant_reviews(
-    Extension(postgres_repo): Extension<PostgresConnectionRepo>,
+    Extension(postgres_repo): Extension<Arc<PostgresConnectionRepo>>,
     Query(query): Query<RetrieveRestaurantReviews>,
 ) -> impl IntoResponse {
     let retrieve_user_review_res = postgres_repo
@@ -136,7 +136,7 @@ pub struct RetrieveUserReviewsQuery {
 }
 
 pub async fn retrieve_user_reviews(
-    Extension(postgres_repo): Extension<PostgresConnectionRepo>,
+    Extension(postgres_repo): Extension<Arc<PostgresConnectionRepo>>,
     Query(query): Query<RetrieveUserReviewsQuery>,
 ) -> impl IntoResponse {
     let user_reviewed_restaurants_res = postgres_repo

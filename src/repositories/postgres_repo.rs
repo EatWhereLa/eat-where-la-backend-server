@@ -3,6 +3,7 @@ use bb8_postgres::bb8::{Pool, PooledConnection};
 use bb8_postgres::PostgresConnectionManager;
 use bb8_postgres::tokio_postgres::{NoTls, Row};
 use time::{OffsetDateTime, Time};
+use time::macros::format_description;
 use tracing::warn;
 use crate::models::rating::RestaurantRating;
 use crate::models::reservation::Reservation;
@@ -488,9 +489,12 @@ fn parse_row_into_restaurant_rating(
 fn parse_row_into_restaurant_reservation(
     row: Row,
 ) -> Reservation {
+    let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
+    let time_str = row.get::<&str, &str>("reservation_timestamp");
+    let time = OffsetDateTime::parse(time_str, format).unwrap();
     Reservation {
         user_id: row.get("user_id"),
         place_id: row.get("place_id"),
-        reservation_timestamp: row.get::<&str, OffsetDateTime>("reservation_timestamp"),
+        reservation_timestamp: time,
     }
 }

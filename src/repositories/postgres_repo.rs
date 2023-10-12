@@ -2,8 +2,10 @@ use anyhow::anyhow;
 use bb8_postgres::bb8::{Pool, PooledConnection};
 use bb8_postgres::PostgresConnectionManager;
 use bb8_postgres::tokio_postgres::{NoTls, Row};
-use time::OffsetDateTime;
+use time::{OffsetDateTime, Time};
 use tracing::warn;
+use crate::models::rating::RestaurantRating;
+use crate::models::reservation::Reservation;
 use crate::models::restaurant::{Location, Photo, Restaurant};
 
 pub const RETRY_LIMIT: usize = 5;
@@ -215,11 +217,241 @@ impl PostgresConnectionRepo {
                 }
             }
             Err(e) => {
-                warn!("Failed to remove bookmarked restaurant for user: {}, due to: {}", user_id, e);
+                warn!("Failed to retrieve bookmarked restaurant for user: {}, due to: {}", user_id, e);
             }
         }
 
         Ok(favourite_restaurants)
+    }
+
+    pub async fn add_user_review(
+        &self,
+        user_id: &String,
+        place_id: &String,
+        rating: f64,
+    ) -> anyhow::Result<()> {
+        let conn = self.get_postgres_connection().await?;
+        let mut stmt = String::from("INSERT INTO user_reviews (user_id, place_id, rating) VALUES ");
+        let params = format!(
+            "('{}', '{}', '{}')",
+            user_id,
+            place_id,
+            rating
+        );
+        stmt.push_str(&params);
+        stmt.push_str(" ON CONFLICT DO NOTHING;");
+
+        let res = conn
+            .execute(&stmt, &[])
+            .await;
+        match res {
+            Ok(_) => {}
+            Err(e) => {
+                warn!("Failed to add review to restaurant for user: {}, due to: {}", user_id, e);
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn update_review(
+        &self,
+        user_id: &String,
+        place_id: &String,
+        rating: f64,
+    ) -> anyhow::Result<()> {
+        let conn = self.get_postgres_connection().await?;
+        let stmt = format!(
+            "UPDATE user_reviews SET rating = {} where user_id = '{}' and place_id = '{}';",
+            rating,
+            user_id,
+            place_id
+        );
+
+        let res = conn
+            .execute(&stmt, &[])
+            .await;
+        match res {
+            Ok(_) => {}
+            Err(e) => {
+                warn!("Failed to update review of restaurant for user: {}, due to: {}", user_id, e);
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn remove_review(
+        &self,
+        user_id: &String,
+        place_id: &String,
+    ) -> anyhow::Result<()> {
+        let conn = self.get_postgres_connection().await?;
+        let stmt = format!(
+            "DELETE FROM user_reviews where user_id = '{}' and place_id = '{}';",
+            user_id,
+            place_id
+        );
+
+        let res = conn
+            .execute(&stmt, &[])
+            .await;
+
+        match res {
+            Ok(_) => {}
+            Err(e) => {
+                warn!("Failed to remove review on restaurant for user: {}, due to: {}", user_id, e);
+            }
+        }
+        Ok(())
+    }
+
+    pub async fn retrieve_restaurant_reviews(
+        &self,
+        place_id: &String,
+    ) -> anyhow::Result<Vec<RestaurantRating>> {
+        let conn = self.get_postgres_connection().await?;
+        let stmt = format!(
+            "SELECT * from user_reviews where place_id = '{}';",
+            place_id
+        );
+
+        let mut restaurant_reviews: Vec<RestaurantRating> = Vec::new();
+        let res = conn.query(&stmt, &[]).await;
+
+        match res {
+            Ok(rows) => {
+                for row in rows {
+                    let restaurant_rating = parse_row_into_restaurant_rating(row);
+
+                    restaurant_reviews.push(restaurant_rating);
+                }
+            }
+            Err(e) => {
+                warn!("Failed to retrieve restaurant rating for place_id: {} due to: {}", place_id, e);
+            }
+        }
+
+        Ok(restaurant_reviews)
+    }
+
+    pub async fn get_user_reviews(
+        &self,
+        user_id: &String,
+    ) -> anyhow::Result<Vec<RestaurantRating>> {
+        let conn = self.get_postgres_connection().await?;
+        let stmt = format!(
+            "SELECT * from user_reviews where user_id = '{}';",
+            user_id
+        );
+
+        let mut restaurant_reviews: Vec<RestaurantRating> = Vec::new();
+        let res = conn
+            .query(
+                &stmt,
+                &[],
+            ).await;
+
+        match res {
+            Ok(rows) => {
+                for row in rows {
+                    let restaurant_rating = parse_row_into_restaurant_rating(row);
+
+                    restaurant_reviews.push(restaurant_rating);
+                }
+            }
+            Err(e) => {
+                warn!("Failed to retrieve restaurant rating for user_id: {} due to: {}", user_id, e);
+            }
+        }
+
+        Ok(restaurant_reviews)
+    }
+
+    pub async fn add_reservations(
+        &self,
+        user_id: &String,
+        place_id: &String,
+        reservation_timestamp: OffsetDateTime,
+    ) -> anyhow::Result<()> {
+        let conn = self.get_postgres_connection().await?;
+        let mut stmt = String::from("INSERT INTO user_reservations (user_id, place_id, reservation_timestamp) VALUES ");
+        let params = format!(
+            "('{}', '{}', '{}')",
+            user_id,
+            place_id,
+            reservation_timestamp,
+        );
+        stmt.push_str(&params);
+        stmt.push_str("ON CONFLICT DO NOTHING;");
+
+        let res = conn
+            .execute(&stmt, &[])
+            .await;
+        match res {
+            Ok(_) => {}
+            Err(e) => {
+                warn!("Failed to add reservation for user: {}, due to: {}", user_id, e);
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn remove_reservation(
+        &self,
+        user_id: &String,
+        place_id: &String,
+    ) -> anyhow::Result<()> {
+        let conn = self.get_postgres_connection().await?;
+        let stmt = format!(
+            "DELETE FROM user_reservations where user_id = '{}' and place_id = '{}';",
+            user_id,
+            place_id,
+        );
+
+        let res = conn
+            .execute(&stmt, &[])
+            .await;
+
+        match res {
+            Ok(_) => {}
+            Err(e) => {
+                warn!("Failed to remove restaurant reservation for user: {}, due to: {}", user_id, e);
+            }
+        }
+        Ok(())
+    }
+
+    pub async fn retrieve_all_user_reservations(
+        &self,
+        user_id: &String,
+    ) -> anyhow::Result<Vec<Reservation>> {
+        let conn = self.get_postgres_connection().await?;
+        let stmt = format!(
+            "SELECT * FROM user_reservations where user_id = '{}' and reservation_timestamp > '{}';",
+            user_id,
+            OffsetDateTime::now_utc().replace_time(Time::MIDNIGHT)
+        );
+
+        let res = conn
+            .query(&stmt, &[])
+            .await;
+
+        let mut reservations: Vec<Reservation> = Vec::new();
+        match res {
+            Ok(rows) => {
+                for row in rows {
+                    let user_reservation = parse_row_into_restaurant_reservation(row);
+
+                    reservations.push(user_reservation);
+                }
+            }
+            Err(e) => {
+                warn!("Failed to retrieve user reservations for user: {}, due to: {}", user_id, e);
+            }
+        }
+        Ok(reservations)
     }
 }
 
@@ -240,5 +472,25 @@ fn parse_row_into_restaurant(
             lat: row.get::<&str, f64>("lat"),
             lng: row.get::<&str, f64>("lng"),
         },
+    }
+}
+
+fn parse_row_into_restaurant_rating(
+    row: Row,
+) -> RestaurantRating {
+    RestaurantRating {
+        user_id: row.get("user_id"),
+        place_id: row.get("place_id"),
+        rating: row.get::<&str, f64>("rating"),
+    }
+}
+
+fn parse_row_into_restaurant_reservation(
+    row: Row,
+) -> Reservation {
+    Reservation {
+        user_id: row.get("user_id"),
+        place_id: row.get("place_id"),
+        reservation_timestamp: row.get::<&str, OffsetDateTime>("reservation_timestamp"),
     }
 }

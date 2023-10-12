@@ -10,16 +10,14 @@ COPY ./Cargo.toml ./
 RUN cargo build --release
 
 COPY ./src ./src
-RUN rm ./target/release/deps/eat_where_la_backend
+RUN rm ./target/release/deps/eat_where_la_backend*
 RUN cargo build --release
 
-FROM debian:bullseye-slim
+FROM photon:latest
+ARG BUILD=/build
 ARG APP=/usr/src/app
 
-RUN apt-get update \
-    && apt-get upgrade -y \
-    && apt-get install -y ca-certificate \
-    && rm -rf /var/lib/apt/lists/*
+RUN tdnf install -y ca-certificates shadow
 
 ENV APP_USER=appuser
 RUN groupadd $APP_USER \

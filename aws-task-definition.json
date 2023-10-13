@@ -1,9 +1,9 @@
 {
-  "taskDefinitionArn": "arn:aws:ecs:ap-southeast-1:231142764421:task-definition/eat-where-task-definition:1",
+  "taskDefinitionArn": "arn:aws:ecs:ap-southeast-1:231142764421:task-definition/eat-where-la-task-definition:3",
   "containerDefinitions": [
     {
       "name": "eat-where-la-backend",
-      "image": "231142764421.dkr.ecr.ap-southeast-1.amazonaws.com/eat-where-la-backend:latest",
+      "image": "231142764421.dkr.ecr.ap-southeast-1.amazonaws.com/eat-where-la-backend",
       "cpu": 0,
       "portMappings": [
         {
@@ -18,7 +18,7 @@
       "environment": [],
       "environmentFiles": [
         {
-          "value": "arn:aws:s3:::eat-where-bucket/.env",
+          "value": "arn:aws:s3:::eat-where/.env",
           "type": "s3"
         }
       ],
@@ -29,7 +29,7 @@
         "logDriver": "awslogs",
         "options": {
           "awslogs-create-group": "true",
-          "awslogs-group": "/ecs/eat-where-task-definition",
+          "awslogs-group": "/ecs/eat-where-la-task-definition",
           "awslogs-region": "ap-southeast-1",
           "awslogs-stream-prefix": "ecs"
         },
@@ -37,10 +37,11 @@
       }
     }
   ],
-  "family": "eat-where-task-definition",
+  "family": "eat-where-la-task-definition",
+  "taskRoleArn": "arn:aws:iam::231142764421:role/ecsTaskExecutionRole",
   "executionRoleArn": "arn:aws:iam::231142764421:role/ecsTaskExecutionRole",
   "networkMode": "awsvpc",
-  "revision": 1,
+  "revision": 3,
   "volumes": [],
   "status": "ACTIVE",
   "requiresAttributes": [
@@ -58,6 +59,9 @@
     },
     {
       "name": "ecs.capability.env-files.s3"
+    },
+    {
+      "name": "com.amazonaws.ecs.capability.task-iam-role"
     },
     {
       "name": "ecs.capability.execution-role-ecr-pull"
@@ -83,10 +87,10 @@
   "cpu": "1024",
   "memory": "3072",
   "runtimePlatform": {
-    "cpuArchitecture": "X86_64",
+    "cpuArchitecture": "ARM64",
     "operatingSystemFamily": "LINUX"
   },
-  "registeredAt": "2023-10-12T13:15:02.498Z",
+  "registeredAt": "2023-10-13T02:17:07.795Z",
   "registeredBy": "arn:aws:iam::231142764421:root",
   "tags": []
 }

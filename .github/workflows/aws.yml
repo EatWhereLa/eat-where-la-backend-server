@@ -33,7 +33,7 @@ on:
 env:
   AWS_REGION: ap-southeast-1 # set this to your preferred AWS region, e.g. us-west-1
   ECR_REPOSITORY: eat-where-la-backend # set this to your Amazon ECR repository name
-  ECS_SERVICE: eat-where-la-service # set this to your Amazon ECS service name
+  ECS_SERVICE: service-name # set this to your Amazon ECS service name
   ECS_CLUSTER: eat-where-la-cluster # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION:
     aws-task-definition.json # set this to the path to your Amazon ECS task definition

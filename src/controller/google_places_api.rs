@@ -9,6 +9,7 @@ use serde_json::{json, Value};
 use tracing::warn;
 use crate::controller::AppState;
 use crate::models::restaurant::{Location, Photo, Restaurant};
+use crate::models::restaurant_image::RestaurantImage;
 use crate::repositories::postgres_repo::PostgresConnectionRepo;
 
 pub fn router(app_state: AppState) -> Router {
@@ -18,7 +19,7 @@ pub fn router(app_state: AppState) -> Router {
 
     Router::new()
         .route("/", get(proxy_google_places_api))
-        // .route("/photo", get(proxy_google_places_photo))
+        .route("/photo", get(proxy_google_places_photo))
         .route("/place-details", get(proxy_google_places_details))
         .route_layer(Extension(app_state))
         .route_layer(Extension(postgres_repo))
@@ -106,54 +107,51 @@ pub async fn proxy_google_places_api(
     ).into_response();
 }
 
-// #[derive(Serialize, Deserialize, Clone, Debug)]
-// pub struct GooglePlacesPhotoParams {
-//     pub photo_reference: String,
-// }
-//
-// pub async fn proxy_google_places_photo(
-//     Extension(app_state): Extension<AppState>,
-//     Query(query): Query<GooglePlacesPhotoParams>,
-// ) -> impl IntoResponse {
-//     let url = format!(
-//         "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={}&key={}",
-//         query.photo_reference,
-//         app_state.config.google_api_key
-//     );
-//
-//     let response = app_state
-//         .http_client
-//         .get(url)
-//         .send()
-//         .await;
-//
-//     match response {
-//         Ok(response) => {
-//             match response.json::<Value>().await {
-//                 Ok(response_body) => {
-//                     return (
-//                         StatusCode::OK,
-//                         response_body.to_string()
-//                     ).into_response();
-//                 }
-//                 Err(e) => {
-//                     warn!("Failed to extract response body for photo due to: {}", e);
-//                     return (
-//                         StatusCode::INTERNAL_SERVER_ERROR,
-//                         "Something went wrong! Please try again".to_string()
-//                     ).into_response();
-//                 }
-//             }
-//         }
-//         Err(e) => {
-//             warn!("Failed query google places api for photo due to: {}", e);
-//             return (
-//                 StatusCode::INTERNAL_SERVER_ERROR,
-//                 "Something went wrong! Please try again".to_string()
-//             ).into_response();
-//         }
-//     }
-// }
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct GooglePlacesPhotoParams {
+    pub photo_reference: String,
+}
+
+pub async fn proxy_google_places_photo(
+    Extension(app_state): Extension<AppState>,
+    Query(query): Query<GooglePlacesPhotoParams>,
+) -> impl IntoResponse {
+    let url = format!(
+        "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={}&key={}",
+        query.photo_reference,
+        app_state.config.google_api_key
+    );
+
+    let response = app_state
+        .http_client
+        .get(url)
+        .send()
+        .await;
+
+    match response {
+        Ok(response) => {
+            let response_url = response.url();
+            let domain = response_url.domain().unwrap().to_string();
+            let path = response_url.path().to_string();
+            let result = format!("{}{}", domain, path);
+            let restaurant_image = RestaurantImage {
+                image_url: result,
+            };
+
+            return (
+                StatusCode::OK,
+                json!(restaurant_image).to_string()
+            ).into_response();
+        }
+        Err(e) => {
+            warn!("Failed query google places api for photo due to: {}", e);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Something went wrong! Please try again".to_string()
+            ).into_response();
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PlaceDetailsParam {

@@ -18,7 +18,8 @@ pub fn router(app_state: AppState) -> Router {
     ));
 
     Router::new()
-        .route("/", get(get_all_reservations))
+        .route("/", get(get_all_existing_reservations))
+        .route("/list", get(get_all_reservations))
         .route("/", post(add_reservation))
         .route("/", delete(delete_reservation))
         .route_layer(Extension(postgres_repo))
@@ -85,6 +86,26 @@ pub async fn delete_reservation(
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GetReservationQuery {
     pub user_id: String,
+}
+
+pub async fn get_all_existing_reservations(
+    Extension(postgres_repo): Extension<Arc<PostgresConnectionRepo>>,
+    Query(query): Query<GetReservationQuery>,
+) -> impl IntoResponse {
+    let user_reservations_res = postgres_repo
+        .retrieve_all_user_valid_reservations(
+            &query.user_id
+        ).await;
+
+    return match user_reservations_res {
+        Ok(reservations) => {
+            (StatusCode::OK, json!(reservations).to_string()).into_response();
+        }
+        Err(e) => {
+            warn!("Something went wrong retrieving user's reservations due to: {}", e);
+            (StatusCode::BAD_REQUEST, "Failed to retrieve reservations, please try again.").into_response();
+        }
+    };
 }
 
 pub async fn get_all_reservations(

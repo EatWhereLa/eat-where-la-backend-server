@@ -424,7 +424,7 @@ impl PostgresConnectionRepo {
         Ok(())
     }
 
-    pub async fn retrieve_all_user_reservations(
+    pub async fn retrieve_all_user_valid_reservations(
         &self,
         user_id: &String,
     ) -> anyhow::Result<Vec<Reservation>> {
@@ -445,6 +445,35 @@ impl PostgresConnectionRepo {
                 for row in rows {
                     let user_reservation = parse_row_into_restaurant_reservation(row);
 
+                    reservations.push(user_reservation);
+                }
+            }
+            Err(e) => {
+                warn!("Failed to retrieve user reservations for user: {}, due to: {}", user_id, e);
+            }
+        }
+        Ok(reservations)
+    }
+
+    pub async fn retrieve_all_user_reservations(
+        &self,
+        user_id: &String,
+    ) -> anyhow::Result<Vec<Reservation>> {
+        let conn = self.get_postgres_connection().await?;
+        let stmt = format!(
+            "SELECT * FROM user_reservations where user_id = '{}'",
+            user_id
+        );
+
+        let res = conn
+            .query(&stmt, &[])
+            .await;
+
+        let mut reservations: Vec<Reservation> = Vec::new();
+        match res {
+            Ok(rows) => {
+                for row in rows {
+                    let user_reservation = parse_row_into_restaurant_reservation(row);
                     reservations.push(user_reservation);
                 }
             }

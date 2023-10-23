@@ -6,8 +6,6 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post, delete};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use time::macros::format_description;
-use time::OffsetDateTime;
 use tracing::warn;
 use crate::controller::AppState;
 use crate::repositories::postgres_repo::PostgresConnectionRepo;
@@ -29,20 +27,20 @@ pub fn router(app_state: AppState) -> Router {
 pub struct ReserveRestaurant {
     pub user_id: String,
     pub place_id: String,
-    pub reservation_time: String,
+    pub reservation_time: i64,
+    pub reservation_pax: u32,
 }
 
 pub async fn add_reservation(
     Extension(postgres_repo): Extension<Arc<PostgresConnectionRepo>>,
     Json(body): Json<ReserveRestaurant>,
 ) -> impl IntoResponse {
-    let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
-    let time = OffsetDateTime::parse(&body.reservation_time, format).unwrap();
     let add_reservation_res = postgres_repo
         .add_reservations(
             &body.user_id,
             &body.place_id,
-            time,
+            body.reservation_time,
+            body.reservation_pax,
         ).await;
 
     return match add_reservation_res {
@@ -99,11 +97,11 @@ pub async fn get_all_existing_reservations(
 
     return match user_reservations_res {
         Ok(reservations) => {
-            (StatusCode::OK, json!(reservations).to_string()).into_response();
+            (StatusCode::OK, json!(reservations).to_string()).into_response()
         }
         Err(e) => {
             warn!("Something went wrong retrieving user's reservations due to: {}", e);
-            (StatusCode::BAD_REQUEST, "Failed to retrieve reservations, please try again.").into_response();
+            (StatusCode::BAD_REQUEST, "Failed to retrieve reservations, please try again.").into_response()
         }
     };
 }
@@ -119,11 +117,11 @@ pub async fn get_all_reservations(
 
     return match user_reservations_res {
         Ok(reservations) => {
-            (StatusCode::OK, json!(reservations).to_string()).into_response();
+            (StatusCode::OK, json!(reservations).to_string()).into_response()
         }
         Err(e) => {
             warn!("Something went wrong retrieving user's reservations due to: {}", e);
-            (StatusCode::BAD_REQUEST, "Failed to retrieve reservations, please try again.").into_response();
+            (StatusCode::BAD_REQUEST, "Failed to retrieve reservations, please try again.").into_response()
         }
     };
 }

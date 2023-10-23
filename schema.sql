@@ -35,5 +35,6 @@ create table user_reservations
 (
     user_id               varchar,
     place_id              varchar,
-    reservation_timestamp timestamp
+    reservation_timestamp int,
+    reservation_pax       int
 );

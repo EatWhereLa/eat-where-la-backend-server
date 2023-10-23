@@ -93,11 +93,11 @@ pub async fn update_review(
 
     return match update_review_res {
         Ok(_) => {
-            (StatusCode::OK, "Successfully updated review for restaurant").into_response();
+            (StatusCode::OK, "Successfully updated review for restaurant").into_response()
         }
         Err(e) => {
             warn!("Something went wrong updating review for restaurant due to: {}", e);
-            (StatusCode::BAD_REQUEST, "Failed to update review for restaurant, please try again.").into_response();
+            (StatusCode::BAD_REQUEST, "Failed to update review for restaurant, please try again.").into_response()
         }
     };
 }
@@ -121,11 +121,11 @@ pub async fn retrieve_restaurant_reviews(
             (
                 StatusCode::OK,
                 json!(&reviews).to_string()
-            ).into_response();
+            ).into_response()
         }
         Err(e) => {
             warn!("Something went wrong retrieving reviews for restaurant due to: {}", e);
-            (StatusCode::BAD_REQUEST, "Failed to retrieve reviews for restaurant, please try again").into_response();
+            (StatusCode::BAD_REQUEST, "Failed to retrieve reviews for restaurant, please try again").into_response()
         }
     };
 }
@@ -149,11 +149,11 @@ pub async fn retrieve_user_reviews(
             (
                 StatusCode::OK,
                 json!(&reviews).to_string()
-            ).into_response();
+            ).into_response()
         }
         Err(e) => {
             warn!("Something went wrong retrieving user reviews for restaurant due to: {}", e);
-            (StatusCode::BAD_REQUEST, "Failed to retrieve user reviews for restaurant, please try again").into_response();
+            (StatusCode::BAD_REQUEST, "Failed to retrieve user reviews for restaurant, please try again").into_response()
         }
     };
 }

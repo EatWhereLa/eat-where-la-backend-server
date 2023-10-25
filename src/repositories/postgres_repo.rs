@@ -2,11 +2,13 @@ use anyhow::anyhow;
 use bb8_postgres::bb8::{Pool, PooledConnection};
 use bb8_postgres::PostgresConnectionManager;
 use bb8_postgres::tokio_postgres::{NoTls, Row};
+use serde_json::Value;
 use time::{OffsetDateTime, Time};
 use tracing::warn;
 use crate::models::rating::RestaurantRating;
 use crate::models::reservation::Reservation;
 use crate::models::restaurant::{Location, Photo, Restaurant};
+use crate::models::vote::VoteHistory;
 
 pub const RETRY_LIMIT: usize = 5;
 
@@ -484,6 +486,89 @@ impl PostgresConnectionRepo {
         }
         Ok(reservations)
     }
+
+    pub async fn store_vote_history(
+        &self,
+        user_ids: Vec<String>,
+        voted_places: Value,
+        vote_session_timestamp: i64,
+    ) -> anyhow::Result<()> {
+        let conn = self.get_postgres_connection().await?;
+        let mut stmt = String::from("INSERT INTO voting_history (voted_places, vote_timestamp, voters) VALUES ");
+        let mut voted_places_stmt = format!("ARRAY[");
+        if let Value::Array(places) = voted_places {
+            for place in places {
+                voted_places_stmt.push_str(
+                    &format!(
+                        "'{}'::jsonb,",
+                        place
+                    )
+                )
+            }
+        }
+        voted_places_stmt.remove(voted_places_stmt.len() - 1);
+        voted_places_stmt.push_str("]");
+
+        let mut user_ids_stmt = format!("ARRAY[");
+        for user_id in user_ids {
+            user_ids_stmt.push_str(
+                &format!(
+                    "'{}',",
+                    user_id
+                )
+            )
+        }
+        user_ids_stmt.remove(user_ids_stmt.len() - 1);
+        user_ids_stmt.push_str("]");
+        let params = format!(
+            "({}, {}, {});",
+            voted_places_stmt,
+            vote_session_timestamp,
+            user_ids_stmt,
+        );
+        stmt.push_str(&params);
+
+        let res = conn
+            .execute(&stmt, &[])
+            .await;
+        match res {
+            Ok(_) => {}
+            Err(e) => {
+                warn!("Failed to store voting history due to: {}", e);
+            }
+        }
+        Ok(())
+    }
+
+    pub async fn retrieve_user_vote_history(
+        &self,
+        user_id: &String,
+    ) -> anyhow::Result<Vec<VoteHistory>> {
+        let conn = self.get_postgres_connection().await?;
+        let stmt = format!(
+            "SELECT * FROM voting_history WHERE '{}' = ANY(voters)",
+            user_id
+        );
+
+        let res = conn
+            .query(&stmt, &[])
+            .await;
+
+        let mut vote_histories: Vec<VoteHistory> = Vec::new();
+        match res {
+            Ok(rows) => {
+                for row in rows {
+                    let vote_history = parse_row_into_vote_history(row);
+
+                    vote_histories.push(vote_history);
+                }
+            }
+            Err(e) => {
+                warn!("Failed to retrieve user's voting histories: {}", e);
+            }
+        }
+        Ok(vote_histories)
+    }
 }
 
 fn parse_row_into_restaurant(
@@ -529,5 +614,18 @@ fn parse_row_into_restaurant_reservation(
         place_id: place_id.to_string(),
         reservation_timestamp: epoch_time as i64,
         reservation_pax: pax as u32,
+    }
+}
+
+fn parse_row_into_vote_history(
+    row: Row,
+) -> VoteHistory {
+    let user_ids = row.get::<&str, Vec<String>>("voters");
+    let vote_timestamp = row.get::<&str, i32>("vote_timestamp");
+    let voted_places = row.get::<&str, Vec<Value>>("voted_places");
+    VoteHistory {
+        user_ids,
+        vote_timestamp: vote_timestamp as i64,
+        voted_places,
     }
 }

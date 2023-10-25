@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 axum = "0.6.20"
-bb8-postgres = { version = "0.8.0", features = ["with-time-0_3"] }
+bb8-postgres = { version = "0.8.0", features = ["with-time-0_3", "with-serde_json-1"] }
 clap = { version = "4", features = ["derive", "env"] }
 crossbeam-channel = "0.5.8"
 dotenv = "0.15.0"

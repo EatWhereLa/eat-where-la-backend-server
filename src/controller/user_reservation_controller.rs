@@ -45,11 +45,11 @@ pub async fn add_reservation(
 
     return match add_reservation_res {
         Ok(_) => {
-            (StatusCode::OK, "Successfully added reservation for restaurant").into_response();
+            (StatusCode::OK, "Successfully added reservation for restaurant").into_response()
         }
         Err(e) => {
             warn!("Something went wrong adding reservation for restaurant due to: {}", e);
-            (StatusCode::BAD_REQUEST, "Failed to add reservation, please try again.").into_response();
+            (StatusCode::BAD_REQUEST, "Failed to add reservation, please try again.").into_response()
         }
     };
 }
@@ -72,11 +72,11 @@ pub async fn delete_reservation(
 
     return match remove_reservation_res {
         Ok(_) => {
-            (StatusCode::OK, "Successfully removed reservation").into_response();
+            (StatusCode::OK, "Successfully removed reservation").into_response()
         }
         Err(e) => {
             warn!("Something went wrong removing reservation due to: {}", e);
-            (StatusCode::BAD_REQUEST, "Failed to remove reservation, please try again.").into_response();
+            (StatusCode::BAD_REQUEST, "Failed to remove reservation, please try again.").into_response()
         }
     };
 }

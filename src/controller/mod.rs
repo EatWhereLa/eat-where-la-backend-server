@@ -18,6 +18,7 @@ pub mod health_check;
 pub mod restaurant_controller;
 pub mod user_reservation_controller;
 pub mod user_review_controller;
+pub mod vote_controller;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -74,4 +75,5 @@ pub fn router_endpoints(
         .nest("/bookmark", bookmarks_controller::router(app_state.clone()))
         .nest("/review", user_review_controller::router(app_state.clone()))
         .nest("/reservation", user_reservation_controller::router(app_state.clone()))
+        .nest("/vote", vote_controller::router(app_state.clone()))
 }

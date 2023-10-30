@@ -231,14 +231,17 @@ impl PostgresConnectionRepo {
         user_id: &String,
         place_id: &String,
         rating: f64,
+        description: &String,
     ) -> anyhow::Result<()> {
         let conn = self.get_postgres_connection().await?;
-        let mut stmt = String::from("INSERT INTO user_reviews (user_id, place_id, rating) VALUES ");
+        let mut stmt = String::from("INSERT INTO user_reviews (user_id, place_id, rating, description, timestamp) VALUES ");
         let params = format!(
-            "('{}', '{}', '{}')",
+            "('{}', '{}', '{}', '{}', '{}')",
             user_id,
             place_id,
-            rating
+            rating,
+            description,
+            OffsetDateTime::now_utc().unix_timestamp(),
         );
         stmt.push_str(&params);
         stmt.push_str(" ON CONFLICT DO NOTHING;");
@@ -261,11 +264,14 @@ impl PostgresConnectionRepo {
         user_id: &String,
         place_id: &String,
         rating: f64,
+        description: &String,
     ) -> anyhow::Result<()> {
         let conn = self.get_postgres_connection().await?;
         let stmt = format!(
-            "UPDATE user_reviews SET rating = {} where user_id = '{}' and place_id = '{}';",
+            "UPDATE user_reviews SET rating = {}, timestamp = {}, description = '{}' where user_id = '{}' and place_id = '{}';",
             rating,
+            OffsetDateTime::now_utc().unix_timestamp(),
+            description,
             user_id,
             place_id
         );
@@ -598,6 +604,8 @@ fn parse_row_into_restaurant_rating(
         user_id: row.get("user_id"),
         place_id: row.get("place_id"),
         rating: row.get::<&str, f64>("rating"),
+        description: row.get("description"),
+        timestamp: row.get::<&str, i32>("timestamp") as i64,
     }
 }
 

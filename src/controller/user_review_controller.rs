@@ -29,6 +29,7 @@ pub struct Review {
     pub user_id: String,
     pub place_id: String,
     pub rating: f64,
+    pub description: String,
 }
 
 pub async fn add_review(
@@ -40,6 +41,7 @@ pub async fn add_review(
             &body.user_id,
             &body.place_id,
             body.rating,
+            &body.description,
         ).await;
 
     return match add_user_review_res {
@@ -89,6 +91,7 @@ pub async fn update_review(
             &body.user_id,
             &body.place_id,
             body.rating,
+            &body.description,
         ).await;
 
     return match update_review_res {

@@ -441,7 +441,7 @@ impl PostgresConnectionRepo {
         let stmt = format!(
             "SELECT * FROM user_reservations where user_id = '{}' and reservation_timestamp > {};",
             user_id,
-            OffsetDateTime::now_utc().replace_time(Time::MIDNIGHT).unix_timestamp()
+            OffsetDateTime::now_utc().unix_timestamp()
         );
 
         let res = conn
